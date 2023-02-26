@@ -1,0 +1,78 @@
+# Credit to dustynv/jetson-containers for these docker files
+
+# this dockerfile roughly follows the 'Install ROS From Source' procedures from:
+#   https://index.ros.org/doc/ros2/Installation/Foxy/Linux-Development-Setup/
+#
+# nvcr.io/nvidia/l4t-base:r32.5.0
+# use the Ubuntu 20.04 JetPack 5.02 image as the base image. This works for jetson nano as a docker container even though JetPack 5.02 is not compatible.
+ARG BASE_IMAGE=dustynv/ros:foxy-ros-base-l4t-r35.2.1
+FROM ${BASE_IMAGE}
+
+ARG ROS_PKG=ros_base
+ENV ROS_DISTRO=foxy
+ENV ROS_ROOT=/opt/ros/${ROS_DISTRO}
+ENV ROS_PYTHON_VERSION=3
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV SHELL /bin/bash
+SHELL ["/bin/bash", "-c"] 
+
+# The curl command updates the key for the ros repository but it is not working when running docker build
+# As of now it only works if we first enter the dustynv/ros:foxy-ros-base-l4t-r35.2.1 container and run
+# the curl commmand within it and following the apt-get update upgrade commands. 
+# rosdep install will then work but it will fail when running within a docker build.
+RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+	apt-get update -y && \
+	rosdep update -y && \
+	apt-get update --fix-missing && sudo apt-get upgrade -y && \
+	# compilation failed on rtabmap because the yaml-cpp library was not installed
+	apt-get install libyaml-cpp-dev -y && \
+	cd && mkdir -p dev_ws/src && cd dev_ws && \
+	git clone https://github.com/introlab/rtabmap.git src/rtabmap && \
+	git clone --branch ros2 https://github.com/introlab/rtabmap_ros.git src/rtabmap_ros && \
+	rosdep update && rosdep install --from-paths src --rosdistro foxy --ignore-src -r -y && \
+	# export MAKEFLAGS="-j24" # Can be ignored if you have a lot of RAM (>16GB) && \
+	# When compiling I think rtabmap_ros could not find some dependent packages which is why -DCMAKE_PREFIX_PATH was added
+	colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=OFF -DCMAKE_PREFIX_PATH="/opt/ros/foxy/install;/opt/ros/foxy/share" && \
+	# The LD_LIBRARY_PATH needed to be updated or else rtabmap_ros will not find its dependent shared libs such as octomap_msgs
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH/opt/ros/foxy/lib && \
+	# add imu_tools ros2 package to be able to use imu_filter_madwick as extra odometry for rtabmap
+	apt-get install ros-foxy-imu-tools -y
+	
+
+
+#
+# fix broken package.xml in test_pluginlib that crops up if/when rosdep is run again
+#
+#   Error(s) in package '/opt/ros/foxy/build/pluginlib/prefix/share/test_pluginlib/package.xml':
+#   Package 'test_pluginlib' must declare at least one maintainer
+#   The package node must contain at least one "license" tag
+#
+#RUN TEST_PLUGINLIB_PACKAGE="${ROS_ROOT}/build/pluginlib/prefix/share/test_pluginlib/package.xml" && \
+#    sed -i '/<\/description>/a <license>BSD<\/license>' $TEST_PLUGINLIB_PACKAGE && \
+#    sed -i '/<\/description>/a <maintainer email="michael@openrobotics.org">Michael Carroll<\/maintainer>' $TEST_PLUGINLIB_PACKAGE && \
+#    cat $TEST_PLUGINLIB_PACKAGE
+    
+    
+#
+# Set the default DDS middleware to cyclonedds
+# https://github.com/ros2/rclcpp/issues/1335
+#
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+    
+# 
+# setup entrypoint
+#
+COPY ./scripts/ros_entrypoint.sh /ros_entrypoint.sh
+
+RUN sed -i \
+    's/ros_env_setup="\/opt\/ros\/$ROS_DISTRO\/setup.bash"/ros_env_setup="${ROS_ROOT}\/install\/setup.bash"/g' \
+    /ros_entrypoint.sh && \
+    cat /ros_entrypoint.sh
+
+RUN echo 'source ${ROS_ROOT}/install/setup.bash' >> /root/.bashrc
+
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["bash"]
+WORKDIR /
