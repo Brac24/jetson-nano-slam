@@ -97,11 +97,14 @@ RUN apt-get update && \
 # Added -DCMAKE_CXX_STANDARD_LIBRARIES="-lstdc++fs" because gtsam was failing to compile. Used this issue to resolve issue https://github.com/borglab/gtsam/issues/1495
 # The issue seemed to have to do with use of gcc7, as described here https://stackoverflow.com/questions/33149878/experimentalfilesystem-linker-error,
 # on the L4T 32.7.1 (Ubuntu 18.04) OS. The L4T 32.7.1 Jetson OS has to use gcc7 for reasons tied to its CUDA version I believe.
-RUN git clone https://github.com/borglab/gtsam /tmp/gtsam && \
+# Try removing -b 4.2a8 and clone most current instead next time.
+# Also try adding -DCMAKE_BUILD_TYPE=Release to its cmake.
+# Also try adding the cmake flag to disable building examples since we don't need them.
+RUN git clone -b 4.2a8 https://github.com/borglab/gtsam /tmp/gtsam && \
     cd /tmp/gtsam && \
     mkdir build && \
     cd build && \
-    cmake -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF -DGTSAM_WITH_TBB=OFF -DCMAKE_CXX_STANDARD_LIBRARIES="-lstdc++fs" .. && \
+    cmake -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF -DGTSAM_WITH_TBB=OFF -DGTSAM_USE_SYSTEM_EIGEN=ON -DCMAKE_CXX_STANDARD_LIBRARIES="-lstdc++fs" .. && \
     make -j$(nproc) && \
     make install && \
     rm -rf /tmp/gtsam
@@ -130,10 +133,18 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
+RUN apt-get update && apt-get install vim -y
+
+# Copy over the cuda libraries from this other docker image to this currently being buils so that rtabmap compiles
+# This was done because the cuda libraries for some reason were not getting loaded at runtime
+# when building on my x86 machine but it would load when running the container on the jetson nano
+COPY --from=nvcr.io/nvidia/l4t-cuda:10.2.460-runtime /usr/local/cuda-10.2/ /usr/local/cuda-10.2/  
+
 # build rtabmap / rtabmap_ros
 RUN git clone https://github.com/introlab/rtabmap.git /opt/rtabmap && \
     cd /opt/rtabmap/build && \
-    cmake -DWITH_PYTHON=ON -DWITH_TORCH=ON -DTorch_DIR=${PYTORCH_PATH}/share/cmake/Torch .. && \
+	cmake -DBUILD_EXAMPLES=OFF .. && \
+    # cmake -DWITH_PYTHON=ON -DWITH_TORCH=ON -DTorch_DIR=${PYTORCH_PATH}/share/cmake/Torch .. && \
     make -j$(nproc) && \
     make install
 
