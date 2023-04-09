@@ -8,4 +8,4 @@ echo $DOCKERFILE
 
 # You need docker buildx to use this
 # https://docs.docker.com/build/install-buildx/
-docker build --platform linux/arm64 -t $CONTAINER_NAME -f $DOCKERFILE .
+docker build --platform linux/arm64 --network=host -t $CONTAINER_NAME -f $DOCKERFILE .
