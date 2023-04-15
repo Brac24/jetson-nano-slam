@@ -36,7 +36,7 @@ ENV LD_LIBRARY_PATH="${PYTORCH_PATH}/lib:${LD_LIBRARY_PATH}"
 ARG ROS_ENVIRONMENT=${ROS_ROOT}/install/setup.bash
 
 # apt-key command was needed or else it would fail with public key is not available
-RUN cd && sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 42D5A192B819C5DA && apt-get update -y && \
+RUN cd && apt-get update -y && \
     git clone https://github.com/Brac24/installLibrealsense.git && \
     cd installLibrealsense && ./buildLibrealsense.sh
 
