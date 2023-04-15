@@ -192,6 +192,36 @@ RUN source ${ROS_ENVIRONMENT} && \
     rm -rf ${ROS_ROOT}/build && \
     rm ${ROS_ROOT}/*.rosinstall
 
+# build rtabmap_ros, but first patch it to import tf2_geometry_msgs correctly
+RUN source ${ROS_ENVIRONMENT} && \
+    cd ${ROS_ROOT} && \
+    mkdir -p src/slam && \
+    
+    # download and patch source
+    git clone --branch ros2 https://github.com/introlab/rtabmap_ros.git src/slam/rtabmap_ros && \
+    # sed -i '/find_package(tf2_ros REQUIRED)/a find_package(tf2_geometry_msgs REQUIRED)' src/slam/rtabmap_ros/CMakeLists.txt && \
+    # sed -i '/   tf2_ros/a tf2_geometry_msgs' src/slam/rtabmap_ros/CMakeLists.txt && \
+    
+    # install apt/deb dependencies using rosdep
+    apt-get update && \
+    rosdep install -y \
+    	  --ignore-src \
+       --from-paths src/slam \
+	  --rosdistro ${ROS_DISTRO} \
+	  --skip-keys "rtabmap find_object_2d Pangolin libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv" && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean && \
+    
+    # build the node
+    colcon build \
+       --merge-install \
+	  --base-paths src/slam/rtabmap_ros \
+	  --event-handlers console_direct+ && \
+
+    # clean-up build files
+    rm -rf ${ROS_ROOT}/src && \
+    rm -rf ${ROS_ROOT}/logs && \
+    rm -rf ${ROS_ROOT}/build 
     
 #
 # Set the default DDS middleware to cyclonedds
