@@ -155,36 +155,29 @@ RUN source ${ROS_ENVIRONMENT} && \
     cd ${ROS_ROOT} && \
     mkdir -p src/slam && \
     
-    # download sources for dependency packages
-    rosinstall_generator --deps --exclude RPP --rosdistro ${ROS_DISTRO} \
-        octomap \
-		nav2_common \
-		laser_geometry \
-		pcl_conversions \
-		rviz_common \
-		rviz_rendering \
-		rviz_default_plugins \
-		realsense2_camera \
-		realsense2_description \
-		diagnostic_updater \
-		compressed_image_transport \
-		compressed_depth_image_transport \
+    # rosinstall_generator will essentially put all of the git urls for every dependency that rtabmap_ros needs into a file
+    # by calling out --deps --exclude RPP it will not get the URL's for dependencies that already exist in the underlay (i.e /opt/ros/foxy/install)
+    rosinstall_generator rtabmap_ros --deps --exclude RPP --rosdistro ${ROS_DISTRO} \
 	> ros2.${ROS_DISTRO}.rtabmap.rosinstall && \
     cat ros2.${ROS_DISTRO}.rtabmap.rosinstall && \
-    vcs import src/slam < ros2.${ROS_DISTRO}.rtabmap.rosinstall && \
+    # This command will clone all of the repositories that are in the .rosinstall file that contains all of the git URL's
+    vcs import src/slam < ros2.${ROS_DISTRO}.rtabmap.rosinstall
     
     # install apt/deb dependencies using rosdep
-    apt-get update && \
-    rosdep install -y \
-       --ignore-src \
-       --from-paths src/slam \
-	  --rosdistro ${ROS_DISTRO} \
-	  --skip-keys "rtabmap find_object_2d Pangolin libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv librealsense2" && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean && \
+RUN  apt-get update && apt-get install libxaw7-dev libxt-dev -y && cd ${ROS_ROOT} && source ${ROS_ENVIRONMENT} &&\
+     rosdep install -y \
+        --ignore-src \
+        --from-paths src/slam \
+	   --rosdistro ${ROS_DISTRO} \
+	   --skip-keys "rtabmap find_object_2d Pangolin libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv librealsense2" && \
+     rm -rf /var/lib/apt/lists/* && \
+     apt-get clean && \
     
-    # build the dependency packages
-    colcon build --merge-install --base-paths src/slam && \
+    # build the dependency packages that are in the src/slam directory only
+    #colcon build --packages-skip libg2o cartographer cartographer_ros_msgs librealsense2 libnabo libpointmatcher rtabmap behaviortree_cpp_v3 \
+    #turtlebot3_msgs turtlebot3_description ompl turtlebot3_teleop hls_lfcd_lds_driver \
+    #turtlebot3_example turtlebot3_node qt_gui_cpp --merge-install --base-paths src/slam && \
+    colcon build --packages-select --event-handlers console_cohesion+ diagnostic_updater realsense2_camera realsense2_camera_msgs --merge-install --base-paths src/slam && \
 	  
     # clean-up build files
     rm -rf ${ROS_ROOT}/src && \
@@ -193,35 +186,35 @@ RUN source ${ROS_ENVIRONMENT} && \
     rm ${ROS_ROOT}/*.rosinstall
 
 # build rtabmap_ros, but first patch it to import tf2_geometry_msgs correctly
-RUN source ${ROS_ENVIRONMENT} && \
-    cd ${ROS_ROOT} && \
-    mkdir -p src/slam && \
+#RUN source ${ROS_ENVIRONMENT} && \
+#    cd ${ROS_ROOT} && \
+#    mkdir -p src/slam && \
     
     # download and patch source
-    git clone --branch ros2 https://github.com/introlab/rtabmap_ros.git src/slam/rtabmap_ros && \
+    #git clone --branch ros2 https://github.com/introlab/rtabmap_ros.git src/slam/rtabmap_ros && \
     # sed -i '/find_package(tf2_ros REQUIRED)/a find_package(tf2_geometry_msgs REQUIRED)' src/slam/rtabmap_ros/CMakeLists.txt && \
     # sed -i '/   tf2_ros/a tf2_geometry_msgs' src/slam/rtabmap_ros/CMakeLists.txt && \
     
     # install apt/deb dependencies using rosdep
-    apt-get update && \
-    rosdep install -y \
-    	  --ignore-src \
-       --from-paths src/slam \
-	  --rosdistro ${ROS_DISTRO} \
-	  --skip-keys "rtabmap find_object_2d Pangolin libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv" && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean && \
-    
-    # build the node
-    colcon build \
-       --merge-install \
-	  --base-paths src/slam/rtabmap_ros \
-	  --event-handlers console_direct+ && \
-
-    # clean-up build files
-    rm -rf ${ROS_ROOT}/src && \
-    rm -rf ${ROS_ROOT}/logs && \
-    rm -rf ${ROS_ROOT}/build 
+#    apt-get update && \
+#    rosdep install -y \
+#    	  --ignore-src \
+#       --from-paths src/slam \
+#	  --rosdistro ${ROS_DISTRO} \
+#	  --skip-keys "rtabmap find_object_2d Pangolin libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv" && \
+#    rm -rf /var/lib/apt/lists/* && \
+#    apt-get clean && \
+#    
+#    # build the node
+#    colcon build \
+#       --merge-install \
+#	  --base-paths src/slam/rtabmap_ros \
+#	  --event-handlers console_direct+ && \
+#
+#    # clean-up build files
+#    rm -rf ${ROS_ROOT}/src && \
+#    rm -rf ${ROS_ROOT}/logs && \
+#    rm -rf ${ROS_ROOT}/build 
     
 #
 # Set the default DDS middleware to cyclonedds
