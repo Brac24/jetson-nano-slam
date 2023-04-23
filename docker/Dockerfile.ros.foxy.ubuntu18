@@ -171,14 +171,25 @@ RUN  apt-get update && apt-get install libxaw7-dev libxt-dev -y && cd ${ROS_ROOT
 	   --rosdistro ${ROS_DISTRO} \
 	   --skip-keys "rtabmap find_object_2d Pangolin libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv librealsense2" && \
      rm -rf /var/lib/apt/lists/* && \
-     apt-get clean && \
+     apt-get clean
     
+# Trying to build libpcl from source because I get this error https://github.com/ros-industrial/yak/issues/9
+# To fix the libpcl issue I need either pcl version 1.9 or 1.10 to allow the pcl ros packages to build.
+# Clone the pcl-1.10.0 tag of the pcl library and build from source.
+RUN apt remove libpcl-* --purge -y && git clone -b pcl-1.10.0 https://github.com/PointCloudLibrary/pcl.git pcl-1.10.0 && \
+    mkdir -p pcl-1.10.0/build && cd pcl-1.10.0/build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j16 install
+
     # build the dependency packages that are in the src/slam directory only
-    #colcon build --packages-skip libg2o cartographer cartographer_ros_msgs librealsense2 libnabo libpointmatcher rtabmap behaviortree_cpp_v3 \
-    #turtlebot3_msgs turtlebot3_description ompl turtlebot3_teleop hls_lfcd_lds_driver \
-    #turtlebot3_example turtlebot3_node qt_gui_cpp --merge-install --base-paths src/slam && \
-    colcon build --packages-select --event-handlers console_cohesion+ diagnostic_updater realsense2_camera realsense2_camera_msgs --merge-install --base-paths src/slam && \
-	  
+#RUN cd ${ROS_ROOT} && source ${ROS_ENVIRONMENT} && colcon build --packages-skip libg2o cartographer_ros cartographer cartographer_ros_msgs libnabo libpointmatcher rtabmap behaviortree_cpp_v3 \
+#    turtlebot3_msgs turtlebot3_description ompl turtlebot3_teleop hls_lfcd_lds_driver \
+#    turtlebot3_example turtlebot3_node qt_gui_cpp turtlebot3_cartographer --merge-install --base-paths src/slam && \
+#    -cmake-args -DFORCE_RSUSB_BACKEND=false -DBUILD_WITH_CUDA=true -DBUILD_EXAMPLES=false -DCMAKE_BUILD_TYPE=release \
+RUN cd ${ROS_ROOT} && source ${ROS_ENVIRONMENT} && colcon build --packages-select pcl_msgs pcl_conversions pcl_ros \
+    #diagnostic_updater librealsense2 realsense2_camera realsense2_camera_msgs \
+    --merge-install --base-paths src/slam  \
+    #--cmake-args -DFORCE_RSUSB_BACKEND=false -DBUILD_WITH_CUDA=true -DBUILD_EXAMPLES=false -DCMAKE_BUILD_TYPE=release \
+    --event-handlers console_direct+ && \
+#	  
     # clean-up build files
     rm -rf ${ROS_ROOT}/src && \
     rm -rf ${ROS_ROOT}/logs && \
