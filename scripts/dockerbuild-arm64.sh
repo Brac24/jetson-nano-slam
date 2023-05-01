@@ -8,4 +8,5 @@ echo $DOCKERFILE
 
 # You need docker buildx to use this
 # https://docs.docker.com/build/install-buildx/
-docker build --platform linux/arm64 --network=host -t $CONTAINER_NAME -f $DOCKERFILE .
+# add this to log the output of the docker build to a file: &> docker-build.log
+docker build --platform linux/arm64 --network=host --progress=plain -t $CONTAINER_NAME -f $DOCKERFILE .
