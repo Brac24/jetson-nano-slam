@@ -1,0 +1,42 @@
+ROS Bag Notes
+
+ROS bag can be used to collect and record raw data (i.e. raw camera image data) 
+and replay that same data over again.
+
+This is very useful for testing and debugging the functionality of a system we
+are building.
+
+For example, we can move our RC car with an attached Intel Realsense D435i and record
+the data produced by the camera. The data the camera can produce is color images,
+depth images, and IMU data. We can record as we drive around and simply replay this
+data as input data going into our SLAM system and have our system produce a map
+from this recorded raw data. This means if our system does not work well or as
+expected, we can simply make improvements and fixes to our system then replay
+the recorded data and we should see a much more accurate map or a map that we
+expect versus having to run the RC car physically everytime we want to test our
+system. Having to physically run our car everytime at the beginning stage of
+our development is going to be very time consuming and make it that much more
+difficult to debug our system. What if the issue is with our robot itself and not
+our software? With this we can build our SLAM system independently of the robot
+that will actually be running our system.
+
+Example of recording the turtlesim pose topic
+----------------------------------------------
+ros2 bag record /turtle1/pose -o mybagOutputFolder
+
+Getting information on the bag directory
+---------------------------------------------
+ros2 bag info mybagOutputFolder
+*note that in this case we are in the parent directory of mybagOutputFolder
+ it does not magically find this directory for us.
+ 
+ Play bag
+ --------------
+ ros2 bag play mybagOutputFolder
+ * not all topics will move the turtlesim. pose does not move it. We need
+ to record /turtle1/cmd_vel in order to see the turtle move on playback
+ 
+ 
+
+
+

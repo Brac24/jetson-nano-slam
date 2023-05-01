@@ -1,0 +1,135 @@
+Graduate Project Progress and Issues
+----------------------------------------
+- Just started these progress notes and back to working on this project 3/17/22
+
+- Last issue I remember having before I stopped workging on this 
+  is intel realsense was not working on jetson nano in the docker container 
+  that had all the necessary slam tools that used ros 2. When I run the container
+  I get an error about not being able to source some realsense file or something.
+  
+  Solution: ****(These steps should get added to docker file so that image builds with these dependencies)
+  First I did a sudo apt-get upgrade on the docker container
+  Then I cloned this into the container repo https://github.com/JetsonHacksNano/installLibrealsense
+  Then went into the repo's directory and ran ./scripts/installDependencies.sh
+  After the previous command finished I ran ./installLibrealsense.sh
+  This was enough to get the sdk into the container
+  I then had to edit the docker_run.sh file under ~/Repos/jetson-containers/scripts
+  Using this https://github.com/edowson/docker-intel I added 3 lines to the docker_run.sh file
+  I added -v /dev:/dev then added -v /lib/modules:/lib/modules and finally --privileged
+  After this rs-depth ran as it should.
+  Finally I did a docker commit on the container so that it would remember the libraries I just added
+  
+
+- Now the issue is when I run ros2 run realsense2_camera realsense2_camera_node I 
+  get warnings/errors about control transfer returned error which coul be related
+  to the following: https://github.com/IntelRealSense/realsense-ros/issues/1271
+  *Note: This might not actually be an issue. I was able to echo out node messages 
+  just not sure how accurate they or reliable the data is.
+  
+- I was able to transmit color image from d435i on jetson nano to rviz2
+  running on my PC. This means the camera is publishing on topics and
+  my PC which is running ROS2 in a docker container is also able to 
+  subscribe to those messages.
+  
+- Now the issue I get when streaming the color image is an error that says
+  uvc streamer watchdog triggered on endpoint. This issue causes the image to
+  lag and a lot. I think it might be restarting or something after it gets
+  this message. A watchdog timer is usually meant to restart a system 
+  after a certain amount of time has after a failure has occured.
+  Solution: I simply restarted the Jetson Nano. It had been on for a few
+  days and maybe somehow got corrupted.
+  
+- I can now stream video to a remote machine using ROS 2.
+  Only issue is that the stream takes a few seconds to arrive
+  and display on the remote machine (about 2 to 3 seconds)
+  
+- Main issue is running RTABMap gives a shared library error saying
+  no such file or directory.
+  It seems I can't even run the most basic jetson examples.
+  It always gives can't load shared library errors. Many forums
+  say the shared library could be corrupted. I am going to image a
+  new SD card with jetpack 4.6.1 and try the basic examples to see if
+  I can run them. I will have to reconfigure/install things to get ssh
+  and remoting up and running again. Trying this out is just to learn
+  if my system is actually corrupted or there could be another reason.
+  
+  
+- The new image worked WAYYYYYY!!!! BETTER. RTABMap actually came
+  up with some sort of Rviz thing. Will test later. Still need
+  to install realsense sdk onto the container.
+  Also note that I simply pulled down the docker container and ran
+  the container and then just ran rtabmap and it worked. Nothing
+  was changed on the container it just worked.
+  
+- So root issue right now seems to be on the camera side. I try to run the following:
+  ros2 launch realsense2_camera rs_launch.py enable_pointcloud:=true
+  But the pointcloud is not publising at all. But if I run:
+  ros2 run realsense2_cammera realsense2_camera_node --ros-args -p enable_pointcloud:=true
+  I am able to see the pointcloud in rviz2.
+  Also right now I need to figure out why it says realsense-ros was build with 2.48 version
+  of librealsense but I am running librealsense 2.50. I am not going to keep the updates
+  made to the container as I did not really solve any issues. If anything
+  these new updates possibly complicated things as it has added some
+  differences which seem off such as topics no longer have the /camera prefix
+  and when setting the frame in rviz2 it now shows _link instead of camera_link
+  so the camera seems to be removed from a lot of things. Maybe it has to 
+  do with building the realsense-ros that I pulled. The container before these
+  updates did not give me these weird differences and did not give me
+  the warning of versioning between the librealsense build and runtime.
+  For now, start with the known working configuration with running the
+  realsense2_camera_node does display the pointcloud in rviz2 and 
+  go from there.
+  
+- Things to figure out:
+  - Why does ros2 launch realsense2_camera rs_launch.py enable_pointcloud:=true not display pointcloud? Don't know yet
+  - Figure how to get a very simple rtab map node running with
+    the realsense2_camera_node instead of the launch files.
+    
+- Most recent issues 4/1/22. rtabmap requires /camera/aligned_depth_to_color/image_raw and /camera/color/image_raw
+  Unfortunately when I try to visualize both images in rviz one of the topics breaks and stops publishing.
+  The first topic displays a black/white/gray depth image
+  The second topic is the color camera image
+  Changing the resolution and fps of the depth stream and color stream help a little but it still eventually breaks.
+  
+  
+  - July 1st 2022. In meeting with professor Hartman just tried running rtab map with D455 to see what would happen.
+    The 3D map rtab map was generating was REALLLLYY!!!! GOOD!!! Especially compared to the map I was getting with
+    the D435i which was not very good at all but it was something.
+    Issue: Need to figure out why the depth image in rviz for the D455 is flickering. 
+    
+---------------------------------------------------------------------------------------------------
+11/23/22
+
+Preparing for demo on Tuesday November 29th.
+
+- The best camera setup for mapping seemed to be with a resolution of 848x480. At a higher resolution such as 1280x720 I was getting
+  duplicate map sections. For example the same piece of the hallway would appear multiple times in areas where it did not belong.
+  
+- Was able to hook jetson nano power to lipo battery through BEC's which are pretty much just switch regulators.
+
+- The bandwidth of the network might not allow for camera data. Maybe try viewing compressed data? Are we viewing compressed or raw data by default?
+  Cannot seem to view compressed data through rviz
+
+---------------------------------------------------------------------------------------------------------------------------
+February 25th 2023
+
+- I am finally able to build ARM docker images for Jetson Nano on my x86 machine. This allows for much faster builds. By comparison, a complex full docker image build can take upwards of 14 hours if building on the Jetson Nano because of its limited CPU and memory. That same complex docker image build approximately takes about 2 to 3 hours on my x86 machine which is a full blown desktop.
+
+- Might want to investigate and setup up docker builds on GitHub with GitHub Actions to build images on the build server versus always on my local machine which I might want to use for other things. I have forked a repo that does just that. I can use that as a starting point.
+
+** Today I was able to build a docker image using dustynv/ros:foxy-ros-base-l4t-r35.2.1 as the base docker image. This base docker image is for JetPack 5.02 which uses Ubuntu 20.04 as opposed to the 18.04 for Jetson Nano. The good thing is that this docker image runs well on Jetson Nano. This image is also a lot easier for installing ros2 package dependencies using rosdep. Ubuntu 18.04 does not have the same facility of using rosdep directly because there are no ros2 foxy packages that are built for Ubuntu 18.04 so I instead have to build many dependencies from source in this case which is why the Ubuntu 20.04 image is much more useful for development. There was a note that this image does not work on JetPack 4.6.1 which I think is what the Jetson Nano currently has but it still worked.
+
+- I have a docker image that has librealsense and realsense_ros which was installed with binaries and not built from source. Seems to work well and also uses CUDA.
+
+- I tested a new setup for running SLAM on the Jetson Nano. I have the trusted cart/slam container for running realsense node and the imu_filter_madwick. And I run a separate container called ros-foxy-rtabmap-jetpack5 which runs rtabmap on Ubuntu 20.04. Both of these containers are running on the Jetson Nano itself and the map gets visualized on my desktop with Rviz2. This works well.
+
+- I also did a quick test of running the RC car outside and got a pretty good point cloud. I have and image and video of that point cloud on my machine. I also took some pictures and videos on this day to compare the point cloud to what it actually looks like outside my backyard.
+
+- I need to start investigating combining multiple SLAM maps with RTAB-Map. This seems to be possible and is called Multi-Session Mapping.
+    
+    
+    
+    
+    
+    
+   

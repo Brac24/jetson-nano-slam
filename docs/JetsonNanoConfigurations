@@ -1,0 +1,21 @@
+Jetson Nano Configurations and Packages
+------------------------------------------
+TLDR:
+Main point here is that there are 2 rtabmaps installed on jetson nano.
+Running on rtabmap upons opening the container will use the older rtabmap
+but will output a lot of different topics such as pointcloud maps.
+To use the newer rtabmap you go to ~/dev_ws and run source install/local_setup.bash
+and then run rtabmap. This will be a newer version of rtabmap but right now seems to only 
+output local odometry topics. Needs to get configured to output other topics.
+
+
+Here I explain the various configurations possible for using jetson nano for slam.
+There have been a lot of changes to the jeston nano packages and there can be a lot
+of confusion for what packages are running.
+
+Base Docker ROS 2 Foxy SLAM Container from DustyNV of Nvidia
+--------------------------------------------------------------
+This container has realsense-ros and rtabmap installed by default.
+The version of rtab map here is an older version but should still work.
+In order for it to work though we must install the imu_madwick_filter package
+to provide IMU messages to rtabmap.

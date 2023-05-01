@@ -1,0 +1,15 @@
+Here I will layout the steps to run a simulation of the Husky
+
+Installing simulation packages
+---------------------------------
+Follow instructions from link here: https://clearpathrobotics.com/assets/guides/foxy/husky/HuskyInstallSoftware.html
+
+Only do the installing from debian packages and not installing from source
+
+Once installation is finished verify it is working by running the following command
+ros2 launch husky_gazebo husky_playpen.launch.py
+
+You can follow this page to verify installation for husky simulation packages: 
+https://clearpathrobotics.com/assets/guides/foxy/husky/HuskySimulation.html
+
+

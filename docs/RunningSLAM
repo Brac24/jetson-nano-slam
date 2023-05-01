@@ -1,0 +1,28 @@
+Running the below commands each in their own terminal should bring up rtabmapviz
+which will then display the 3D map that it has currently constructed along with th odometry.
+
+If the odometry screen goes red, it means that rtab map does not now the location of the camera. It
+is essentially lost and will stop creating the map. To try to fix this you can slowly move back to 
+the previous location and it might "find" itself again but it might not at which point you might have
+to restart.
+
+Old ROS2 Wrapper Version of command
+--------------------------
+ros2 launch realsense2_camera rs_launch.py align_depth:=true linear_accel_cov:=1.0 enable_accel:=true enable_gyro:=true unite_imu_method:=linear_interpolation color_width:=848 color_height:=480 color_fps:=30.0 depth_width:=848 depth_height:=480 depth_fps:=30.0
+
+New ROS2 Wrapper Version of command
+---------------------------------------
+ros2 launch realsense2_camera rs_launch.py align_depth.enable:=true linear_accel_cov:=1.0 enable_accel:=true enable_gyro:=true unite_imu_method:=linear_interpolation rgb_camera.profile:=848x480x30 depth_module.profile:=848x480X30
+
+ros2 run imu_filter_madgwick imu_filter_madgwick_node --ros-args -p use_mag:=false -p _publish_tf:=false -p _world_frame:="enu" -r /imu/data_raw:=/camera/imu -r /imu/data:=/imu
+(Might also try without /imu/data:=/imu and just use pure rgb-d odometry)
+
+ros2 launch rtabmap_ros realsense_d400.launch.py
+
+------------------------------------------------------
+SLAM with Dual Camera
+
+There is a rs_multicamera.launch.py launch file that will launch both cameras and put their topics under a unique namespace.
+camera1/color/image_raw and camera2/color/image_raw for example.
+
+

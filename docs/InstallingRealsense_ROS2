@@ -1,0 +1,48 @@
+Installing librealsense and realsense-ros from source for a more integrated and efficient install
+-----------------------------------------------------------------------------------------------------
+The following link shows a user that was able to successfully build realsense from sources
+and would no longer get the weird errors like uvc or watchdog warnings. https://github.com/IntelRealSense/realsense-ros/issues/2308
+
+I tried following these instructions: https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md
+
+But ran into an issue with the kernel version of ubuntu being 5.13.0-51-generic.
+So now I need to figure out how to change the default kernel being used to 5.11 which is
+the latest kernel that is supported.
+
+Installed kernel 5.11 in conjunction with following links:
+- Instructions: https://www.how2shout.com/linux/install-linux-5-8-kernel-on-ubuntu-20-04-lts/
+- Specific link to kernel packages: https://kernel.ubuntu.com/~kernel-ppa/mainline/v5.11/amd64/
+
+Took some time but the issue at least with selecting a different kernel version with this computer
+was to turn secure boot off. The secure boot mode is not very important for our project.
+
+The lowlatency kernel version did not work. Now trying the generic 5.11 version.
+Generic version did not work either.
+
+Finally got the patch-realsense-ubuntu-lts.sh script to run. I needed to use version 5.11.0-25 specifically.
+
+I installed both the generic and lowlatency kernel versions.
+To install the lowlatency version run the following commands:
+sudo apt install linux-headers-5.11.0-25-lowlatency
+sudo apt install linux-image-5.11.0-25-lowlatency
+
+For the generic version just replace lowlatency in the above commands with generic. But also run:
+sudo apt install linux-modules-extra-5.11.0-25-generic
+
+I don't know if the kernel patches finished all the way through unfortunately computer had to be restarted.
+
+Had issues building with CUDA on ubuntu laptop. I am trying to install CUDA on the base station. I ran:
+sudo apt install nvidia-cuda-toolkit
+
+Was now able to build with cuda by running:
+
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=true -DBUILD_WITH_CUDA=true ..
+ 
+ make -j(x) (Replace (x) with number of cores you want to use for faster parallel compilation. )
+ 
+ sudo make install
+
+
+
+
+

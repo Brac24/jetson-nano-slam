@@ -1,0 +1,125 @@
+1. Use xrdp to remote into jetson nano locally here at home
+   IP: 192.168.86.60
+   Password: serlrobotics
+   
+Flashed L4T Version: R32.7.1
+
+The L4T Version is important because some packages that come from nvidia might only support a particular
+version. R32.7.1 is currently the latest.
+   
+-----------------------------------
+Running ROS 2 Docker Container on Jetson Nano
+
+- Go to directory: ~/Repos/jetson-containers
+
+- Run command: sudo docker images
+  This command should list out images that are on the jetson.
+  We want to locate the image with the TAG of latest and REPOSITORY name cart/slam
+  This is the image containing SLAM packages and ROS 2 and has been altered from the dustynv/ros:foxy-slam-l4t-r32.6.1 base image
+  
+  
+- Next from the jetson-containers directory run the following command:
+  ./scripts/docker_run_priveleged.sh -c cart/slam (this privelged script gives the container access to the realsense camera)
+  ./scripts/docker_run.sh -c dustynv/ros:foxy-slam-l4t-r32.6.1 (this is old base container I was initially using)
+  This command will run the container or it will download the image if necessary
+  then run the container.
+  
+  To run the video stream from a realsense camera in the container we run the following command:
+  ros2 launch realsense2_camera rs_launch.py
+  
+  After running this command go to your remote machine and open rviz2
+  In rviz2 add a new topic. Search by topic and under camera select the color image topic
+  This will then show a streaming color image in rviz.
+  
+  
+  ----------------------My Remote Machine Instructions----------------------------------------------
+  
+  In the current remote machine I am using my home PC running on Ubuntu with a docker container
+  that contains all of the ROS 2 dependencies and tools, such as Rviz2, that are needed to test.
+  If using my machine, you must go to the isaac_ros_common by running the following command: 
+  cd ~/Repos/isaac_ros_common
+  
+  Then you must run a script that will setup and start the container for you. While in the isaac_ros_common directory run:
+  ./scripts/run_dev.sh
+  
+  Once finished you should now be in the container and in the following directory:
+  /workspaces/isaac_ros-dev$
+  
+  From this container you shoulb be able to open Rviz2 by simply typing rviz2 in the command line where you are logged in to the container
+  and press Enter.
+  
+  
+  
+  -----------------------Multiple connections to same Docker container----------------------------------
+  
+- For ROS development we usually need multiple terminal windows open.
+  For this, we need to be able to open multiple terminal sessions and
+  connect to our docker container that is running ROS 2. To do this,
+  if our docker container is already running and we want another terminal
+  connected to that container we will open another terminal window or tab.
+  Then we run: sudo docker exec -it container-id bash
+  The container-id is a hash value the defines the container. To find this
+  id we run: sudo docker ps
+  This will list out all running containers. Look for the container you want
+  to connect to and copy the Container ID in the the previous command.
+  Now we are connected to the same container which has the all the exact same
+  state and we can persist any changes into that same container from the other terminal
+ 
+ 
+ ----------------------------Updating Docker Images with new libraries and system changes-----------------------------
+  
+- Usually during development using Docker we make changes to the container such as
+  installing new libraries we need. As soon as we exit out of our container and re-run it
+  it will default to the original state from when we first started it. So if we installed
+  any new libraries we installed will be lost and we would have to re-install them everytime we run
+  the container again. The proper way is to add new library installation to the docker file is
+  using the RUN command in docker. Unfortunately this means we have to rebuild the docker image
+  which can be a bit time consuming especially if running on the jetson nano which can take
+  even up to 6 hours for a docker image that is 1 GB compressed and uncompresses to about 8 GB.
+  For now since we are prototyping we just want to persist the changes quickly 
+  and note the installations so we can go back to do it the proper way by adding them to 
+  the docker file. In order to persist your changes quickly without having to rebuild
+  the image we open a new terminal session (DO NOT connect to the container)
+  and run: docker commit container-id cart/slam
+  This command will save your container changes and we should be able to close and re-open
+  the container and be in the exact same state as we were before we closed the container.
+  Get the container ID be running: docker ps
+  and looking for the container you want to save.
+  In the example, cart/slam is the REPOSITORY name.
+  If you run: docker images
+  You will see a list of images with data columns for REPOSITORY, TAG, etc.
+  If you want to create a new image then you change the REPOSITORY name but
+  this will take up more space on your machine.
+  If you want to just update the same image with the new state then make sure
+  that the REPOSITORY name is the same name or else it will create a new image.
+  
+  
+  --------------------------Searching if dependencies (such as shared objects) exist in system---------------
+  find / -name name_of_library.so
+  
+  --------------------------Create a package of a docker image and load it to Jetson Nano-------------------
+  
+  We want to do this because we want to be able to build a docker image on our x86 system for our Jetson Nano.
+  Presumably, doing a docker build on the workstation should be much faster than a docker build on the Jetson Nano
+  itself. Therefore, we build the docker container for ARM64 on our x86 workstation with QEMU, create a tar artifact,
+  scp the tar file over to the Nano, then load the docker image to the Nano contained in the tar file.
+  
+  - To build the docker image run the following command
+    docker build -t my-container-name -f Dockerfile.whatever-name-of-file .
+    where my-container-name is the name you want to give the image and Dockerfile.whatever-name-of-file is the Dockerfile
+    to use for building the image.
+  
+  - To create a package/artifact of a docker image that we can use to load run the following command
+    docker save -o name-you-want-for-package.tar devicequery:latest
+    
+    The extension can also be img I believe or anything else possibly but tar has been tested to work.
+    The deviceuery:latest is the dockerImageName:tag
+    
+  - We can then scp the tar file generated to the Jetson Nano.
+    Apparently rsync is the preferred command for big files over scp but have never used it but might need to.
+  
+  - Lastly, we load the docker image contained in the tar file with the following command
+    docker load -i <path to image tar file>
+    
+    
+    

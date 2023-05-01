@@ -1,0 +1,21 @@
+The ros2 container currently used with jetson nano uses rmw_cyclone_dds as the underlying
+dds implementation for communication. For some reason this causes issues. Switching to
+rmw_fastrtps_cpp yields much more reliable results. Therefore, we need to change the implementation
+that the ros2 docker container uses on the jetson nano.
+
+After running inside cart/slam container run:
+- echo $RMW_IMPLEMENTATION
+ 
+ The previous command will output what dds implementation is in use. Change it if it is not rmw_fastrtps_cpp
+ 
+ To change run:
+ - export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+ 
+After setting that env variable we now want to reset ros2 to use the new implementation
+run:
+- ros2 daemon stop
+
+Then run:
+- ros2 daemon start
+
+Now we the communication between jetson nano and the base station should be much more reliable.

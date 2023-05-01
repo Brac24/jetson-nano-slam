@@ -1,0 +1,10 @@
+ROS 2 Foxy Installation Instructions
+-----------------------------------------
+- Following installation process from here: https://docs.ros.org/en/foxy/Installation.html 
+
+- Specifically using the Debian binary distribution instructions from here: https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html
+ 
+ *Note: Don't use the copy utility in the code boxes that lets you copy the whole line by clicking the copy button for the installation commands. They will not copy correctly and will cause issues when running the commands. Instead you should either type them out or manually highlight it and copy it and then paste it to the command line.
+ 
+ - If you installed the foxy-desktop version you can verify installation by running the following command: rviz2
+ RVIZ application should now open.

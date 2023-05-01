@@ -1,0 +1,91 @@
+July 24 2022
+-------------
+- Created DDS_JetsonNano_Fix instructions text file showing how to change dds implementation being
+  used on the jetson nano for a more reliable connection. We will probably want to save and persist this
+  fix onto the container eventually so we don't always have to be changing it.
+  
+- (Previously thought resolved) Jetson nano was powering off while in use with the camera and supplying a lot of message for rtab map
+  and imu_madgwick_filter.
+  The reason seems to possibly the power budget. I am using a portable charger that supposedly supplies
+  3 amps of current but not sure if that is the case because the reason it turns off is that it is using
+  up too much power and the power supply cannot supply what it needs.
+  The solution online seems to try to use a 5V 4A power supply connected through the barrel jack.
+  For that we will need to figure out a way to supply that power portably. 
+  Also remember that we need to change the jumper on the jetson nano to switch to using
+  the barrel jack as the power source.
+ 
+ - Solution: The solution was a higher quality micro USB cable. It hasn't turned off since I change to a different cable.
+ - Update (07/31/22): Actually jetson nano still turned off with the newer cable. The newer cable is much more reliable but I think we will need to switch to using the barrel jack or figuring out how to use the power gpio pins to power it.
+  
+- rosbags not recording color images properly. Even tried creating the rosbag on the jetson nano
+  and it would still not record the color image. Let's figure this out so we can use this as input
+  into the imu_madgwick_filter and rtabmap.
+  I was running: ros2 bag record -a -o d455.
+  (-a meant to record all topics but it only recorded a single color image.)
+  
+  
+  July 30 2022
+  ---------------
+  During meeting with professor Hartman I tried running the full slam system on Jetson Nano. By full slam system I mean the different ROS 2 nodes that are used to create the map. That is: Realsense node, imu_filter_madwick, and rtabmap_ros. The system was able to run and produce a pretty good map and odometry reading. All of this was computed on the jetson nano only using the CPU. The problem was computing the map was very slow. I would move the robot about a foot and stop and had to wait about 30 seconds or so to update, somtimes more and sometimes less. Although it was slow it was fairly accurate which was great to see that a single jetson nano only running on the CPU had good enough performance for testing purposes.
+  
+  My next step here is trying to figure out the use of CUDA and the Jetson Nano's GPU to increase performance for more real-time operation. From some research I have seen, an operation that runs on the CPU that takes about 100 ms can run the same operation on the GPU in 10 ms which is an order of magnitude increase in performance.
+  
+  The current docker conatiner I am using says that OpenCV has CUDA suppport but the jetson nano OpenCV native installation show that OpenCV was not built with CUDA. 
+  Maybe the native installation must also be built with CUDA support?
+  I have natively build librealsense on the jetson nano with CUDA support and was able to verify that it is in fact using the GPU by running: jtop. Then I ran the rs-colors realsense example application and could see in jtop that the GPU was actually being used. The rs-depth example application did not use the GPU though so only certain operations will take advantage of the GPU.
+  If I can get parts of the whole SLAM pipeline to use the GPU such as realsense and OpenCV that should significantly increase performance. Hopefully the increase will be enough to at least not have to wait many seconds for the map to update. Ideally, it will also allow for the use of 2 cameras on the jetson nano which would also be great but would a secondary goal for now. The main goal is to get a single camera performing at an accepatble speed.
+  
+  Update cart/slam docker container with librealsense 2.50 built from source with CUDA support. realsense-ros will still use the odler version 2.48 that came with the container though.
+  
+  Now updated realsense-ros in the overlay in the workspace ~/dev_ws directory. I can confirm that this version now use librealsense 2.50 and is actually using the GPU according to jtop. rtabmap no longer needs imu_filter_madwick. rtabmap uses rgbd_odometry now. There is an issue with the new realsense-ros in that it is not publishing imu data though which means we can't use imu_filter_madwick which could be an added odometry benefit versus just using rgbd odometry.
+  Need to figure out why new realsense-ros version is not publishing imu data.
+  
+  Also on another good note: since jetson is now using GPU with realsense, we are able to view both the depth and color images at the same time from rviz2 runnning on the base station (ARCS laptop)
+ -------------------------------------------------------------------------------------------------
+  July 31 2022
+  ----------------
+  I am now trying to build rtabmap to use opencv with cuda support. The docker conatiner cart/slam
+  already has opencv 4.50 with cuda support so I am using colcon build in the ~/dev_ws overlay workspace to build rtabmap and rtabmap_ros in hopes that it will build with the cuda supported opencv installed in the container. The default rtabmap installation that came with the container I thought was built against that opencv since that's what's included but maybe it's not.
+  
+  To test and verify rtabmap now uses the gpu I will need to use realsense-ros in the underlay which is the default package that came with the container. This way, I know realsense will not use the gpu because the default version is not built with cuda support.
+  Then I will open a new terminal and source the overlay: cd ~/dev_ws && source install/local_setup.bash
+  This will make sure that when I run rtabmap, that it is running the rtabmap I just built.
+  
+  To build rtabmap in the overlay I had to clone rtabmap and rtabmap_ros into ~/dev_ws/src
+  I also needed to build nav2_msgs for some reason. Somehow when building overlay packages, they sometimes can't find some other packages such as nav2_msgs which was installed by default but maybe to an unexpected directory.
+  
+  Built rtabmap_ros in overlay workspace. Took 14 hours to build.
+
+----------------------------------------------------------------------------------------------------
+September 5 2022
+---------------------
+- Issue: realsense-ros built with librealsense v2.50.0 does not publish IMU messages.
+  Solution: Downgrade to use librealsense v2.48.0
+  To do downgrade what I did was built librealsense with CUDA support using the buildLibrealsense.sh script
+  found in ~/Repos/installRealSenseSDK directory as followed: ./buildLibrealsense.sh -v v2.48.0
+  the -v v2.48.0 grabs the git repo in librealsense with the tag v2.48.0 and builds that version from source.
+  Doing it this way did not remove the previous librealsense version I had installed myself which was v2.50.0.
+  This might cause issues.
+  What I did was that a copied the librealsense so's for 2.48.0 that were installed in /usr/local/lib to /opt/ros/foxy/install/lib directory.
+  That is the directory that is used by the old realsense-ros version that came with the docker image. Now the old realsense-ros version
+  will run with CUDA suppport. For now I will keep the newer realsense-ros in the overlay ~/dev_ws directory and leave that as built
+  against v2.50.0. We can test how effective the IMU data can be by comparing between these two realsense-ros versions, one with IMU and the other using only rgbd-odometry.
+  I created an issue in realsense-ros github issue #2470 to investigate why IMU is not working with newer versions of librealsense.
+
+- Issue: Could not remember how I had created the map of our hallway and living room.
+  Solution: I am using the older realsense-ros built with v2.48.0 (but the one with CUDA support) in the underlay to be able to get IMU data
+            and using the rtabmap_ros version in the overlay as well as the imu_madgwick_filter in the overlay.
+  - Step 1:  Run the first command from RunningSLAM document to start D455 camera. 
+             Make sure the librealsense version is v2.48.0 (it should say in initial logs of starting realsense-ros)
+    Step 2:  Connect to current cart/slam container and source the overlay and run imu_madwick_filter using second command in RunningSLAM doc.
+    Step 3:  Connect another terminal to cart/slam container and source the overlay and run the rtabmap command found in RunningSLAM doc.
+    Step 4:  Open rviz2. I opened it on my machine that has a full ROS 2 system inside a docker container.
+    Step 5:  Choose map as the Fixed Frame inside of rviz. This is to get the full map and not the current map that is relative to the camera.
+    Step 6:  Add the cloud_map topic that is a PointCloud.
+    Note that for these steps you should also make sure that you are changing the RMW_IMPLEMENTATION env variable to rmw_fastrtps_cpp
+    for each terminal you connect to cart/slam container. And make sure you run ros2 daemon stop then ros2 daemon start in each terminal
+    after you've changed the RMW_IMPLEMENTATION in order for that change to take effect in the ROS 2 system.
+    
+-  Require Barrel jack connection for more power to be able to view realtime video feed and run SLAM at once.
+  
+  

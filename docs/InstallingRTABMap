@@ -1,0 +1,16 @@
+Installing rtabmap for ROS2
+----------------------------------
+I tried installing rtabmap for ros2 with the instructions from here: https://github.com/introlab/rtabmap_ros/tree/ros2#rtabmap_ros
+
+Was getting a cmake error due to some dependencies required by rtabmap.
+To solve this issue I ran the following commands:
+rosdep update
+rosdep install --from-path src --ignore-src -r -y
+
+ (This commands above assume you have rosdep installed and configured already)
+ Was still getting the issue even after rosdep installed all dependencies
+ 
+ Now it seems to be trying to install.
+ I had to run the colcon build command again with the cmake args and add a new cmake
+ arg for the boost library:
+ -DBoost_LIBRARY_DIR_RELEASE=/usr/lib/x86_64-linux-gnu
