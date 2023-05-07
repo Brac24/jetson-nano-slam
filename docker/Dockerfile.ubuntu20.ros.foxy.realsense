@@ -1,0 +1,58 @@
+#
+# this dockerfile roughly follows the 'Install ROS From Source' procedures from:
+#   https://index.ros.org/doc/ros2/Installation/Foxy/Linux-Development-Setup/
+#
+# nvcr.io/nvidia/l4t-base:r32.5.0
+ARG BASE_IMAGE=dustynv/ros:foxy-ros-base-l4t-r35.2.1
+FROM ${BASE_IMAGE}
+
+ARG ROS_PKG=ros_base
+ENV ROS_DISTRO=foxy
+ENV ROS_ROOT=/opt/ros/${ROS_DISTRO}
+ENV ROS_PYTHON_VERSION=3
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV SHELL /bin/bash
+SHELL ["/bin/bash", "-c"] 
+
+RUN cd && source /opt/ros/foxy/install/setup.bash && apt-get update -y && mkdir -p dev_ws/src && cd dev_ws/src && \
+    # clone this hash that was the last realsense-ros that required librealsense v2.48.0
+    git clone -b ros2-legacy https://github.com/IntelRealSense/realsense-ros.git && \
+    cd realsense-ros && git checkout 1515b8d24e216def3cc7e60d4b44ca8831a4cab8 && cd .. && \
+    # clone librealsense v2.48.0 because that is the last known good realsense sdk where the IMU works on Jetson Nano
+    git clone -b v2.48.0 https://github.com/IntelRealSense/librealsense.git && \
+    # install dependencies that realsense-ros requires but don't install opencv or librealsense dependencies
+    cd .. && rosdep update && rosdep install -i --from-path src/realsense-ros --rosdistro foxy --skip-keys="librealsense2 libopencv-dev ros-foxy-cv-bridge" -y && \
+    # source the underlay after installing dependencies so that realsense-ros packages can find the installed dependent packages
+    source /opt/ros/foxy/setup.bash && \
+    # install libusb-1.0-0-dev because librealasense2 needs it
+    apt-get install libusb-1.0-0-dev -y && \
+    colcon build --symlink-install --cmake-args -DFORCE_RSUSB_BACKEND=false -DBUILD_WITH_CUDA=true -DBUILD_EXAMPLES=false -DCMAKE_BUILD_TYPE=release
+
+
+
+# RUN cd && rm -r librealsense
+    
+    
+#
+# Set the default DDS middleware to cyclonedds
+# https://github.com/ros2/rclcpp/issues/1335
+#
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+    
+# 
+# setup entrypoint
+#
+# COPY ./packages/ros_entrypoint.sh /ros_entrypoint.sh
+# 
+# RUN sed -i \
+#     's/ros_env_setup="\/opt\/ros\/$ROS_DISTRO\/setup.bash"/ros_env_setup="${ROS_ROOT}\/install\/setup.bash"/g' \
+#     /ros_entrypoint.sh && \
+#     cat /ros_entrypoint.sh
+# 
+# RUN echo 'source ${ROS_ROOT}/install/setup.bash' >> /root/.bashrc
+# 
+# ENTRYPOINT ["/ros_entrypoint.sh"]
+# CMD ["bash"]
+# WORKDIR /

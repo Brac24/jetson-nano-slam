@@ -221,6 +221,15 @@ RUN source ${ROS_ENVIRONMENT} && \
 	# The LD_LIBRARY_PATH needed to be updated or else rtabmap_ros will not find its dependent shared libs such as octomap_msgs
 	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH/opt/ros/foxy/lib
 
+RUN cd /opt/ros/foxy && mkdir -p src/slam && cd src/slam && \
+    # clone this hash that was the last realsense-ros that required librealsense v2.48.0
+    git clone -b ros2-legacy https://github.com/IntelRealSense/realsense-ros.git && \
+    cd realsense-ros && git checkout 1515b8d24e216def3cc7e60d4b44ca8831a4cab8 && cd .. && \
+    # clone librealsense v2.48.0 because that is the last known good realsense sdk where the IMU works on Jetson Nano
+    git clone -b v2.48.0 https://github.com/IntelRealSense/librealsense.git && \
+    cd /opt/ros/foxy && source install/setup.bash && \
+    colcon build --merge-install --base-paths src/slam \
+    --cmake-args -DFORCE_RSUSB_BACKEND=false -DBUILD_WITH_CUDA=true -DBUILD_EXAMPLES=false -DCMAKE_BUILD_TYPE=release
 # build rtabmap_ros, but first patch it to import tf2_geometry_msgs correctly
 #RUN source ${ROS_ENVIRONMENT} && \
 #    cd ${ROS_ROOT} && \
@@ -258,6 +267,7 @@ RUN source ${ROS_ENVIRONMENT} && \
 #
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
+COPY ./scripts/launch-legacy-realsense.sh /launch-legacy-realsense-ros.sh
     
 # 
 # setup entrypoint
