@@ -9,6 +9,11 @@ The last compatible version is librealsense v2.48.0. I have this installed on th
 Docker images I build should probably only use librealsense v2.48.0 from here on out. We need IMU to use imu_filter_madwick.
 It is not a requirement because RTAB-Map can do RGB-D Odometry but it's an added odometry input that would help the robot from getting lost.
 
+# Directory Structure
+- docker folder contains the docker files to build the docker images
+- docker/scripts contains bash scripts meant to be copied and used within the docker images/containers
+- scripts folder contains convenience bash scripts to be used for this project such as building or saving a docker image
+
 # Available Docker Images
 Currently there are 2 docker files. One docker file bulds off of the Ubuntu 20.04 JetPack 5.02 image for newer Jetson devices provided by Nvidia.  The other image is based on the Jetpack 4.6.1 which uses Ubuntu 18.04. Both images have the ROS 2 framework installed. The Ubuntu 18 based image takes a while to build since it builds a lot of software from source because ROS 2 Foxy package are not available for Ubuntu 18.04.
 

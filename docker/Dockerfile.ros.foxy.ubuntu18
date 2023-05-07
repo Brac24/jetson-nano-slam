@@ -260,6 +260,9 @@ RUN cd /opt/ros/foxy && mkdir -p src/slam && cd src/slam && \
 #    rm -rf ${ROS_ROOT}/src && \
 #    rm -rf ${ROS_ROOT}/logs && \
 #    rm -rf ${ROS_ROOT}/build 
+
+# intall GNU Parallel utility to allow us to run bash scripts in parallel 
+RUN apt-get update && apt-get install parallel -y
     
 #
 # Set the default DDS middleware to cyclonedds
@@ -267,8 +270,10 @@ RUN cd /opt/ros/foxy && mkdir -p src/slam && cd src/slam && \
 #
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
-COPY ./scripts/launch-legacy-realsense.sh /launch-legacy-realsense-ros.sh
-    
+COPY ./docker/scripts/launch-legacy-realsense.sh /launch-legacy-realsense-ros.sh
+COPY ./docker/scripts/launch-new-rtabmap.sh /launch-new-rtabmap.sh
+COPY ./docker/scripts/run-slam.sh /run-slam.sh
+
 # 
 # setup entrypoint
 #
@@ -279,8 +284,8 @@ COPY ./scripts/launch-legacy-realsense.sh /launch-legacy-realsense-ros.sh
 #    /ros_entrypoint.sh && \
 #    cat /ros_entrypoint.sh
 
-# RUN echo 'source ${ROS_ROOT}/install/setup.bash' >> /root/.bashrc
+RUN echo 'source ~/dev_ws/install/setup.bash' >> /root/.bashrc
 
-#ENTRYPOINT ["./ros_entrypoint.sh"]
-#CMD ["bash"]
+#ENTRYPOINT ["/root/dev_ws/install/local_setup.bash"]
+#CMD ["~/dev_ws/install/local_setup.bash"]
 #WORKDIR /
