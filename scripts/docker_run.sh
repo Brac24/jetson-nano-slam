@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# this script is from dustynv/jetson-nano-containers
 CONTAINER_IMAGE="nvcr.io/nvidian/nvidia-l4t-base:r32.4"
 
 USER_VOLUME=""
