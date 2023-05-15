@@ -1,0 +1,12 @@
+# Use the rtabmap_ros image with ROS 2 Foxy
+FROM introlab3it/rtabmap_ros:foxy-latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV SHELL /bin/bash
+SHELL ["/bin/bash", "-c"] 
+
+# image_pipeline and imu_tools were ROS packages I needed to install because
+# I was getting errors when trying to launch the euroc launch file for rtabmap
+RUN apt-get update && apt install vim ros-foxy-image-pipeline ros-foxy-imu-tools -y
+
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/foxy/lib/x86_64-linux-gnu
