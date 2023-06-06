@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+# Run this script on the Jetson Nano before trying to profile with Nsight Systems
+# Script is based of setup instructions here https://docs.nvidia.com/nsight-systems/InstallationGuide/index.html#linux-requirements
+
 target_platform='tegra'
 target_platform_count=$(uname -r | grep -c $target_platform ) # Check if we are running on Jetson if it kernel platform contains the word tegra
 
 if [ $target_platform_count -gt 0 ]; then
-# Run this script on the Jetson Nano before trying to profile with Nsight Systems
     if [ $(cat /proc/sys/kernel/perf_event_paranoid) -gt 2 ]; then # if this file contains a value greater than 2 the reduce it to allow Nsight Systems to work properly
         sudo sh -c 'echo 2 >/proc/sys/kernel/perf_event_paranoid'
     else
