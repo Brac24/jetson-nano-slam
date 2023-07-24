@@ -183,9 +183,10 @@ RUN  apt-get update && apt-get install libxaw7-dev libxt-dev -y && cd ${ROS_ROOT
     
 # Trying to build libpcl from source because I get this error https://github.com/ros-industrial/yak/issues/9
 # To fix the libpcl issue I need either pcl version 1.9 or 1.10 to allow the pcl ros packages to build.
-# Clone the pcl-1.10.0 tag of the pcl library and build from source.
-RUN apt remove libpcl-* --purge -y && git clone -b pcl-1.10.0 https://github.com/PointCloudLibrary/pcl.git pcl-1.10.0 && \
-    mkdir -p pcl-1.10.0/build && cd pcl-1.10.0/build && cmake -DBUILD_GPU=ON -DCMAKE_BUILD_TYPE=Release .. && make -j16 install
+# Clone the pcl-1.10.1 tag of the pcl library and build from source. The pcl-1.10.0 has a compilation issue
+# related to converting the library from boost::shared_ptr to std::shared_ptr
+RUN apt remove libpcl-* --purge -y && git clone -b pcl-1.10.1 https://github.com/PointCloudLibrary/pcl.git pcl-1.10.1 && \
+    mkdir -p pcl-1.10.1/build && cd pcl-1.10.1/build && cmake -DBUILD_GPU=ON -DCMAKE_BUILD_TYPE=Release .. && make -j16 install
 
     # build the dependency packages that are in the src/slam directory only
 #RUN cd ${ROS_ROOT} && source ${ROS_ENVIRONMENT} && colcon build --packages-skip libg2o cartographer_ros cartographer cartographer_ros_msgs libnabo libpointmatcher rtabmap behaviortree_cpp_v3 \

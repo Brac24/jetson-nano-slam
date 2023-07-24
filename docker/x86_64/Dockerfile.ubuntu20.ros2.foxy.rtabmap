@@ -9,4 +9,5 @@ SHELL ["/bin/bash", "-c"]
 # I was getting errors when trying to launch the euroc launch file for rtabmap
 RUN apt-get update && apt install vim ros-foxy-image-pipeline ros-foxy-imu-tools -y
 
-RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/foxy/lib/x86_64-linux-gnu
+# use ENV to affect environment variables. These library paths are also needed to run rviz2 or rtabmap tools such as rtabmap-databaseViewer
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/ros/foxy/lib/x86_64-linux-gnu:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib"
