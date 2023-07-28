@@ -104,33 +104,33 @@ RUN apt-get update && \
 # Try removing -b 4.2a8 and clone most current instead next time.
 # Also try adding -DCMAKE_BUILD_TYPE=Release to its cmake.
 # Also try adding the cmake flag to disable building examples since we don't need them.
-# RUN git clone -b 4.2a8 https://github.com/borglab/gtsam /tmp/gtsam && \
-#     cd /tmp/gtsam && \
-#     mkdir build && \
-#     cd build && \
-#     cmake -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF -DCMAKE_BUILD_TYPE=Release -DGTSAM_WITH_TBB=OFF -DGTSAM_USE_SYSTEM_EIGEN=ON -DGTSAM_BUILD_CONVENIENCE_LIBRARIES:OPTION=OFF -DCMAKE_CXX_STANDARD_LIBRARIES="-lstdc++fs" .. && \
-#     make -j$(nproc) && \
-#     make install && \
-#     rm -rf /tmp/gtsam
+RUN git clone -b 4.2a8 https://github.com/borglab/gtsam /tmp/gtsam && \
+    cd /tmp/gtsam && \
+    mkdir build && \
+    cd build && \
+    cmake -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF -DCMAKE_BUILD_TYPE=Release -DGTSAM_WITH_TBB=OFF -DGTSAM_USE_SYSTEM_EIGEN=ON -DGTSAM_BUILD_CONVENIENCE_LIBRARIES:OPTION=OFF -DCMAKE_CXX_STANDARD_LIBRARIES="-lstdc++fs" .. && \
+    make -j$(nproc) && \
+    make install && \
+    rm -rf /tmp/gtsam
 
-# RUN git clone -b master https://github.com/ethz-asl/libnabo /tmp/libnabo && \
-#     cd /tmp/libnabo && \
-#     mkdir build && \
-#     cd build && \
-#     cmake .. && \
-#     make -j$(nproc) && \
-#     make install && \
-#     rm -rf /tmp/libnabo
+RUN git clone -b master https://github.com/ethz-asl/libnabo /tmp/libnabo && \
+    cd /tmp/libnabo && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make -j$(nproc) && \
+    make install && \
+    rm -rf /tmp/libnabo
 
-# RUN git clone -b libnabo-config-mode https://github.com/sloriot/libpointmatcher.git /tmp/libpointmatcher && \
-#     cd /tmp/libpointmatcher && \
-#     mkdir build && \
-#     cd build && \
-#     cmake .. && \
-#     # cmake -DPOINTMATCHER_BUILD_EXAMPLES=OFF .. && \
-#     make -j$(nproc) && \
-#     make install && \
-#     rm -rf /tmp/libpointmatcher
+#RUN git clone -b libnabo-config-mode https://github.com/sloriot/libpointmatcher.git /tmp/libpointmatcher && \
+#    cd /tmp/libpointmatcher && \
+#    mkdir build && \
+#    cd build && \
+#    cmake .. && \
+#    # cmake -DPOINTMATCHER_BUILD_EXAMPLES=OFF .. && \
+#    make -j$(nproc) && \
+#    make install && \
+#    rm -rf /tmp/libpointmatcher
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
