@@ -122,6 +122,10 @@ RUN git clone -b master https://github.com/ethz-asl/libnabo /tmp/libnabo && \
     make install && \
     rm -rf /tmp/libnabo
 
+# libpointmatcher compiled fine but seemed to cause issues when compiling rtabmap.
+# errors were weird relocation errors and would cause the docker build to fail
+# we don't need libpointmatcher unless we want to use icp_odometry with a lidar and rtabmap
+# if needed uncomment and resolve compilation issue if it is still there
 #RUN git clone -b libnabo-config-mode https://github.com/sloriot/libpointmatcher.git /tmp/libpointmatcher && \
 #    cd /tmp/libpointmatcher && \
 #    mkdir build && \
