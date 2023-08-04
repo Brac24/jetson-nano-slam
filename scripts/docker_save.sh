@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
-CONTAINER=$1
+DOCKER_IMAGE=$1
 
 shift
 shift
+echo "Generating tar artifact for $DOCKER_IMAGE Docker image..."
 
-#sudo cp cuda-devel.csv /etc/nvidia-container-runtime/host-files-for-container.d/
-
-echo "Generating tar artifact for $CONTAINER container..."
-
-sudo docker save -o $CONTAINER.tar $CONTAINER
+# creates a tar of a Docker image which we can then load onto any machine
+sudo docker save -o $DOCKER_IMAGE.tar $DOCKER_IMAGE
